@@ -1,0 +1,3 @@
+scip
+tensorboard
+ipython
