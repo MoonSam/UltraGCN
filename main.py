@@ -1,5 +1,5 @@
 from IPython import embed
-#from memory_profiler import profile
+from memory_profiler import profile
 
 import torch
 import torch.nn as nn
