@@ -1,21 +1,7 @@
 # !/bin/bash
 
-echo Target dataset: electronic
+echo Target dataset: amazon
 
-mprof run main.py --config_file config/profile_electronic_config.ini
+python -m memory_profiler main.py --config_file config/profile_amazon_config.ini
 
-mv *.dat results/electronic_result/
-
-echo Target dataset: m1
-
-mprof run main.py --config_file config/profile_m1_config.ini
-
-mv *.dat results/m1_result/
-
-echo Target dataset: yelp
-
-mprof run main.py --config_file config/profile_yelp_config.ini
-
-mv *.dat results/yelp_result/
-
-echo DONE!
+mv *.dat results/amazon_result/
