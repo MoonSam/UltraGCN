@@ -1,4 +1,6 @@
 from IPython import embed
+from memory_profiler import profile
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,6 +13,7 @@ import gc
 import configparser
 import time
 import argparse
+
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -381,6 +384,7 @@ class UltraGCN(nn.Module):
 Train
 '''
 ########################### TRAINING #####################################
+@profile
 def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_list, interacted_items, params): 
     device = params['device']
     best_epoch, best_recall, best_ndcg = 0, 0, 0
