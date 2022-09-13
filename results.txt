@@ -1,0 +1,82 @@
+Timer unit: 1e-06 s
+
+Total time: 1222.41 s
+File: main.py
+Function: train at line 387
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   387                                           @profile
+   388                                           def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_list, interacted_items, params): 
+   389         1         64.0     64.0      0.0      device = params['device']
+   390         1          2.0      2.0      0.0      best_epoch, best_recall, best_ndcg = 0, 0, 0
+   391         1          2.0      2.0      0.0      early_stop_count = 0
+   392         1          2.0      2.0      0.0      early_stop = False
+   393                                           
+   394         1          4.0      4.0      0.0      batches = len(train_loader.dataset) // params['batch_size']
+   395         1          2.0      2.0      0.0      if len(train_loader.dataset) % params['batch_size'] != 0:
+   396         1          2.0      2.0      0.0          batches += 1
+   397         1         12.0     12.0      0.0      print('Total training batches = {}'.format(batches))
+   398                                               
+   399         1          2.0      2.0      0.0      if params['enable_tensorboard']:
+   400         1      37727.0  37727.0      0.0          writer = SummaryWriter()
+   401                                               
+   402                                           
+   403        11         22.0      2.0      0.0      for epoch in range(params['max_epoch']):
+   404        10       2068.0    206.8      0.0          model.train() 
+   405        10         26.0      2.6      0.0          start_time = time.time()
+   406                                           
+   407     46510  146988031.0   3160.4     12.0          for batch, x in enumerate(train_loader): # x: tensor:[users, pos_items]
+   408     46500  325245232.0   6994.5     26.6              users, pos_items, neg_items = Sampling(x, params['item_num'], params['negative_num'], interacted_items, params['sampling_sift_pos'])
+   409     46500    2257978.0     48.6      0.2              users = users.to(device)
+   410     46500    1149830.0     24.7      0.1              pos_items = pos_items.to(device)
+   411     46500   13202321.0    283.9      1.1              neg_items = neg_items.to(device)
+   412                                           
+   413     46500    5385343.0    115.8      0.4              model.zero_grad()
+   414     46500  402089902.0   8647.1     32.9              loss = model(users, pos_items, neg_items)
+   415     46500      99147.0      2.1      0.0              if params['enable_tensorboard']:
+   416     46500    6307458.0    135.6      0.5                  writer.add_scalar("Loss/train_batch", loss, batches * epoch + batch)
+   417     46500  150018856.0   3226.2     12.3              loss.backward()
+   418     46500    9363671.0    201.4      0.8              optimizer.step()
+   419                                                   
+   420        10        697.0     69.7      0.0          train_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
+   421        10         21.0      2.1      0.0          if params['enable_tensorboard']:
+   422        10       3308.0    330.8      0.0              writer.add_scalar("Loss/train_epoch", loss, epoch)
+   423                                           
+   424        10         18.0      1.8      0.0          need_test = True
+   425        10         22.0      2.2      0.0          if epoch < 50 and epoch % 5 != 0:
+   426         8         10.0      1.2      0.0              need_test = False
+   427                                                       
+   428        10         14.0      1.4      0.0          if need_test:
+   429         2          2.0      1.0      0.0              start_time = time.time()
+   430         2  159882956.0 79941478.0     13.1              F1_score, Precision, Recall, NDCG = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
+   431         2         70.0     35.0      0.0              if params['enable_tensorboard']:
+   432         2      13458.0   6729.0      0.0                  writer.add_scalar('Results/recall@20', Recall, epoch)
+   433         2        124.0     62.0      0.0                  writer.add_scalar('Results/ndcg@20', NDCG, epoch)
+   434         2        161.0     80.5      0.0              test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
+   435                                                       
+   436         2        169.0     84.5      0.0              print('The time for epoch {} is: train time = {}, test time = {}'.format(epoch, train_time, test_time))
+   437         2       4176.0   2088.0      0.0              print("Loss = {:.5f}, F1-score: {:5f} \t Precision: {:.5f}\t Recall: {:.5f}\tNDCG: {:.5f}".format(loss.item(), F1_score, Precision, Recall, NDCG))
+   438                                           
+   439         2          8.0      4.0      0.0              if Recall > best_recall:
+   440         2          4.0      2.0      0.0                  best_recall, best_ndcg, best_epoch = Recall, NDCG, epoch
+   441         2          3.0      1.5      0.0                  early_stop_count = 0
+   442         2     360950.0 180475.0      0.0                  torch.save(model.state_dict(), params['model_save_path'])
+   443                                           
+   444                                                       else:
+   445                                                           early_stop_count += 1
+   446                                                           if early_stop_count == params['early_stop_epoch']:
+   447                                                               early_stop = True
+   448                                                   
+   449        10         18.0      1.8      0.0          if early_stop:
+   450                                                       print('##########################################')
+   451                                                       print('Early stop is triggered at {} epochs.'.format(epoch))
+   452                                                       print('Results:')
+   453                                                       print('best epoch = {}, best recall = {}, best ndcg = {}'.format(best_epoch, best_recall, best_ndcg))
+   454                                                       print('The best model is saved at {}'.format(params['model_save_path']))
+   455                                                       break
+   456                                           
+   457         1        504.0    504.0      0.0      writer.flush()
+   458                                           
+   459         1          7.0      7.0      0.0      print('Training end!')
+
