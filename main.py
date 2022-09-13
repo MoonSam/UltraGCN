@@ -1,4 +1,6 @@
 from IPython import embed
+from memory_profiler import profile
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,6 +13,7 @@ import gc
 import configparser
 import time
 import argparse
+
 from torch.utils.tensorboard import SummaryWriter
 
 
