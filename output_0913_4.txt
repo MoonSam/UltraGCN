@@ -1,0 +1,95 @@
+Amazon_Line_Prof
+###################### UltraGCN ######################
+1. Loading Configuration...
+load path = ./amazon_ii_constraint_mat object
+load path = ./amazon_ii_neighbor_mat object
+Load Configuration OK, show them below
+Configuration:
+{'embedding_dim': 64, 'ii_neighbor_num': 10, 'model_save_path': './ultragcn_amazon.pt', 'max_epoch': 10, 'enable_tensorboard': True, 'initial_weight': 0.0001, 'dataset': 'amazon', 'gpu': '0', 'device': device(type='cuda', index=0), 'lr': 0.001, 'batch_size': 512, 'early_stop_epoch': 15, 'w1': 1e-08, 'w2': 1.0, 'w3': 1.0, 'w4': 1e-08, 'negative_num': 500, 'negative_weight': 500.0, 'gamma': 0.0001, 'lambda': 2.75, 'sampling_sift_pos': False, 'test_batch_size': 2048, 'topk': 20, 'user_num': 52643, 'item_num': 91599}
+Total training batches = 4650
+The time for epoch 0 is: train time = 00: 02: 07, test time = 00: 01: 48
+Loss = 802.97742, F1-score: 0.002440 	 Precision: 0.00181	 Recall: 0.00374	NDCG: 0.00308
+The time for epoch 5 is: train time = 00: 02: 06, test time = 00: 00: 17
+Loss = 437.60422, F1-score: 0.010468 	 Precision: 0.00769	 Recall: 0.01638	NDCG: 0.01363
+Training end!
+Filename: main.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   387  21344.8 MiB  21344.8 MiB           1   @profile
+   388                                         def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_list, interacted_items, params): 
+   389  21344.8 MiB      0.0 MiB           1       device = params['device']
+   390  21344.8 MiB      0.0 MiB           1       best_epoch, best_recall, best_ndcg = 0, 0, 0
+   391  21344.8 MiB      0.0 MiB           1       early_stop_count = 0
+   392  21344.8 MiB      0.0 MiB           1       early_stop = False
+   393                                         
+   394  21344.8 MiB      0.0 MiB           1       batches = len(train_loader.dataset) // params['batch_size']
+   395  21344.8 MiB      0.0 MiB           1       if len(train_loader.dataset) % params['batch_size'] != 0:
+   396  21344.8 MiB      0.0 MiB           1           batches += 1
+   397  21344.8 MiB      0.0 MiB           1       print('Total training batches = {}'.format(batches))
+   398                                             
+   399  21344.8 MiB      0.0 MiB           1       if params['enable_tensorboard']:
+   400  21344.8 MiB      0.0 MiB           1           writer = SummaryWriter()
+   401                                             
+   402                                         
+   403  21432.1 MiB     -1.7 MiB          11       for epoch in range(params['max_epoch']):
+   404  21431.9 MiB     -1.7 MiB          10           model.train() 
+   405  21431.9 MiB     -1.7 MiB          10           start_time = time.time()
+   406                                         
+   407  21502.9 MiB  -8125.2 MiB       46510           for batch, x in enumerate(train_loader): # x: tensor:[users, pos_items]
+   408  21502.9 MiB  -7911.9 MiB       46500               users, pos_items, neg_items = Sampling(x, params['item_num'], params['negative_num'], interacted_items, params['sampling_sift_pos'])
+   409  21502.9 MiB  -7912.0 MiB       46500               users = users.to(device)
+   410  21502.9 MiB  -7949.3 MiB       46500               pos_items = pos_items.to(device)
+   411  21502.9 MiB  -8003.8 MiB       46500               neg_items = neg_items.to(device)
+   412                                         
+   413  21502.9 MiB  -8003.8 MiB       46500               model.zero_grad()
+   414  21502.9 MiB  -7985.8 MiB       46500               loss = model(users, pos_items, neg_items)
+   415  21502.9 MiB  -8095.6 MiB       46500               if params['enable_tensorboard']:
+   416  21502.9 MiB  -8095.4 MiB       46500                   writer.add_scalar("Loss/train_batch", loss, batches * epoch + batch)
+   417  21502.9 MiB  -8093.8 MiB       46500               loss.backward()
+   418  21502.9 MiB  -8131.6 MiB       46500               optimizer.step()
+   419                                                 
+   420  21432.1 MiB   -713.2 MiB          10           train_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
+   421  21432.1 MiB      0.0 MiB          10           if params['enable_tensorboard']:
+   422  21432.1 MiB      0.0 MiB          10               writer.add_scalar("Loss/train_epoch", loss, epoch)
+   423                                         
+   424  21432.1 MiB      0.0 MiB          10           need_test = True
+   425  21432.1 MiB      0.0 MiB          10           if epoch < 50 and epoch % 5 != 0:
+   426  21432.1 MiB      0.0 MiB           8               need_test = False
+   427                                                     
+   428  21432.1 MiB      0.0 MiB          10           if need_test:
+   429  21431.4 MiB      0.0 MiB           2               start_time = time.time()
+   430  21429.7 MiB     58.4 MiB           2               F1_score, Precision, Recall, NDCG = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
+   431  21429.7 MiB      0.0 MiB           2               if params['enable_tensorboard']:
+   432  21429.7 MiB      0.0 MiB           2                   writer.add_scalar('Results/recall@20', Recall, epoch)
+   433  21429.7 MiB      0.0 MiB           2                   writer.add_scalar('Results/ndcg@20', NDCG, epoch)
+   434  21429.7 MiB      0.0 MiB           2               test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
+   435                                                     
+   436  21429.7 MiB      0.0 MiB           2               print('The time for epoch {} is: train time = {}, test time = {}'.format(epoch, train_time, test_time))
+   437  21429.7 MiB      0.0 MiB           2               print("Loss = {:.5f}, F1-score: {:5f} \t Precision: {:.5f}\t Recall: {:.5f}\tNDCG: {:.5f}".format(loss.item(), F1_score, Precision, Recall, NDCG))
+   438                                         
+   439  21429.7 MiB      0.0 MiB           2               if Recall > best_recall:
+   440  21429.7 MiB      0.0 MiB           2                   best_recall, best_ndcg, best_epoch = Recall, NDCG, epoch
+   441  21429.7 MiB      0.0 MiB           2                   early_stop_count = 0
+   442  21429.7 MiB      0.1 MiB           2                   torch.save(model.state_dict(), params['model_save_path'])
+   443                                         
+   444                                                     else:
+   445                                                         early_stop_count += 1
+   446                                                         if early_stop_count == params['early_stop_epoch']:
+   447                                                             early_stop = True
+   448                                                 
+   449  21432.1 MiB      0.0 MiB          10           if early_stop:
+   450                                                     print('##########################################')
+   451                                                     print('Early stop is triggered at {} epochs.'.format(epoch))
+   452                                                     print('Results:')
+   453                                                     print('best epoch = {}, best recall = {}, best ndcg = {}'.format(best_epoch, best_recall, best_ndcg))
+   454                                                     print('The best model is saved at {}'.format(params['model_save_path']))
+   455                                                     break
+   456                                         
+   457  21432.1 MiB      0.0 MiB           1       writer.flush()
+   458                                         
+   459  21432.1 MiB      0.0 MiB           1       print('Training end!')
+
+
+END
+Wrote profile results to main.py.lprof
