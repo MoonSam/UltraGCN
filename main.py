@@ -148,7 +148,7 @@ def get_ii_constraint_mat(train_mat, num_neighbors, ii_diagonal_zero = False):
     return res_mat.long(), res_sim_mat.float()
 
     
-
+@profile
 def load_data(train_file, test_file):
     trainUniqueUsers, trainItem, trainUser = [], [], []
     testUniqueUsers, testItem, testUser = [], [], []
@@ -266,7 +266,7 @@ Model Definition
 '''
 
 class UltraGCN(nn.Module):
-    @profile
+
     def __init__(self, params, constraint_mat, ii_constraint_mat, ii_neighbor_mat):
         super(UltraGCN, self).__init__()
         self.user_num = params['user_num']
@@ -297,7 +297,6 @@ class UltraGCN(nn.Module):
         nn.init.normal_(self.user_embeds.weight, std=self.initial_weight)
         nn.init.normal_(self.item_embeds.weight, std=self.initial_weight)
 
-    @profile
     def get_omegas(self, users, pos_items, neg_items):
         device = self.get_device()
         if self.w2 > 0:
@@ -318,7 +317,6 @@ class UltraGCN(nn.Module):
         return weight
 
 
-    @profile
     def cal_loss_L(self, users, pos_items, neg_items, omega_weight):
         device = self.get_device()
         user_embeds = self.user_embeds(users)
