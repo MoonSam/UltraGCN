@@ -1,3 +1,0 @@
-# !/bin/bash
-
-mprof plot -o image_"$1".png --backend agg

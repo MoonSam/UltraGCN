@@ -1,5 +1,0 @@
-pytorch
-numpy
-scipy
-tensorboard
-ipython
